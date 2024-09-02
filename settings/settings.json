@@ -1,0 +1,15 @@
+{
+    "db": [
+        {
+            "name": "data/database/inspection_controle.db"
+        }
+
+    ],
+    "sftp": [
+        {
+            "url": "prod18-ars-diamant.integra.fr",
+            "username": "DNUM",
+            "passphrase": "01062021@beD"
+        }
+    ]
+}
