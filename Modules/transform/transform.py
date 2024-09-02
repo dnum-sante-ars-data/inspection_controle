@@ -4,10 +4,7 @@ import json
 from Modules.init_db.init_db import connDb
 from Modules.utils.utils import read_settings
 
-
-
 # Connexion à la base et création des tables
-
 
 def drop_existing_views(cursor, table):
     for table in table:
@@ -435,7 +432,8 @@ def inittable(conn):
         LEFT JOIN t_finess ON missions_prev.CD_FINESS = t_finess.finess
         LEFT JOIN lien_communes ON t_finess.com_code = lien_communes.com 
         LEFT JOIN ref_insee_departement ON lien_communes.dep = ref_insee_departement.DEP 
-        LEFT JOIN ref_insee_region ON ref_insee_departement.REG = ref_insee_region.reg_cd """
+        LEFT JOIN ref_insee_region ON ref_insee_departement.REG = ref_insee_region.reg_cd
+        LEFT JOIN sa_cibles ON missions_prev.CD_FINESS = sa_cibles.FINESS """
             
     cursor.execute(missions_prev_complet)
     conn.commit()
@@ -444,85 +442,78 @@ def inittable(conn):
     cross_miss_sui= f"""
         Create table cross_miss_sui AS 
         SELECT 
-        reg_cd,
-        reg_lb,
-        dep_cd,
-        dep_lb,
-        com_cd,
-        com_lb,
-        finess_cd,
-        Cible,
-        missions_real_complet."Identifiant de la mission",
-        statut_juridique_cd,
-        statut_juridique_lb,
-        "" AS groupe,
-        type_de_mission,
-        CTRL_PL_PI,
-        "" AS group_hsa_sa,
-        "" AS filtre,
-        "Statut de la mission",
-        "Date réelle ""Visite"",
-        "" AS GROUPE_2,
-        groupe_siicea,
-        "Type de planification",
-        "Mission conjointe avec 1",
-        "Mission conjointe avec 2",
-        mission_conjointe,
-        "Modalité de la mission",
-        "Type de décision",
-        Complément,
-        "Thème Décision",
-        "Sous-thème Décision",
-        COALESCE(SANCTION, 'sans_contrainte') AS SANCTION,
-        SUM(Nombre) AS NB_SUITE
-        --Nombre
-        FROM missions_real_complet
-        LEFT JOIN 
-            (SELECT 
-            "Identifiant de la mission",
-            "Type de décision",
-            Complément,
-            "Thème Décision",
-            "Sous-thème Décision",
-            IIF("Type de décision" IN (
-                'Injonction',
-                'Prescription',
-                'Saisine'
-                ), 'contrainte', 'sans_contrainte') AS SANCTION,
-            Nombre
+            "reg_cd",
+            "reg_lb",
+            "dep_cd",
+            "dep_lb",
+            "com_cd",
+            "com_lb",
+            "finess_cd",
+            "Cible",
+            mission_real_complet."Identifiant de la mission",
+            "statut_juridique_cd",
+            "statut_juridique_lb",
+            '' AS groupe,
+            "type_de_mission",
+            "CTRL_PL_PI",
+            '' AS group_hsa_sa,
+            '' AS filtre,
+            "Statut de la mission",
+            "Date réelle Visite", -- Corrigé pour éviter les doubles guillemets imbriqués
+            '' AS GROUPE_2,
+            "groupe_siicea",
+            "Type de planification",
+            "Mission conjointe avec 1",
+            "Mission conjointe avec 2",
+            "mission_conjointe",
+            "Modalité de la mission",
+            decisions."Type de décision", -- Assurez-vous que cela correspond bien à la table decisions
+            decisions."Complément", -- Assurez-vous que cela correspond bien à la table decisions
+            decisions."Thème Décision", -- Assurez-vous que cela correspond bien à la table decisions
+            decisions."Sous-thème Décision", -- Assurez-vous que cela correspond bien à la table decisions
+            COALESCE(decisions.SANCTION, 'sans_contrainte') AS SANCTION, -- Utilisation correcte de COALESCE
+            SUM(decisions.Nombre) AS NB_SUITE -- Agrégation correcte avec SUM
+        FROM mission_real_complet
+        LEFT JOIN (
+            SELECT 
+                "Identifiant de la mission",
+                "Type de décision",
+                "Complément",
+                "Thème Décision",
+                "Sous-thème Décision",
+                IIF("Type de décision" IN ('Injonction', 'Prescription', 'Saisine'), 'contrainte', 'sans_contrainte') AS SANCTION,
+                Nombre
             FROM "sa_decisions"
-        ) decisions ON missions_real_complet."Identifiant de la mission"=decisions."Identifiant de la mission" 
+        ) decisions 
+            ON mission_real_complet."Identifiant de la mission" = decisions."Identifiant de la mission"
         GROUP BY 
-        reg_cd,
-        reg_lb,
-        dep_cd,
-        dep_lb,
-        com_cd,
-        com_lb,
-        finess_cd,
-        Cible,
-        missions_real_complet."Identifiant de la mission",
-        statut_juridique_cd,
-        statut_juridique_lb,
-        groupe,
-        type_de_mission,
-        CTRL_PL_PI,
-        group_hsa_sa,
-        filtre,
-        "Statut de la mission",
-        "Date réelle ""Visite"",
-        GROUPE_2,
-        groupe_siicea,
-        "Type de planification",
-        "Mission conjointe avec 1",
-        "Mission conjointe avec 2",
-        mission_conjointe,
-        "Modalité de la mission",
-        "Type de décision",
-        Complément,
-        "Thème Décision",
-        "Sous-thème Décision",
-        COALESCE(SANCTION, 'sans_contrainte')"""
+            "reg_cd",
+            "reg_lb",
+            "dep_cd",
+            "dep_lb",
+            "com_cd",
+            "com_lb",
+            "finess_cd",
+            "Cible",
+            mission_real_complet."Identifiant de la mission",
+            "statut_juridique_cd",
+            "statut_juridique_lb",
+            "type_de_mission",
+            "CTRL_PL_PI",
+            "Statut de la mission",
+            "Date réelle Visite", 
+            "groupe_siicea",
+            "Type de planification",
+            "Mission conjointe avec 1",
+            "Mission conjointe avec 2",
+            "mission_conjointe",
+            "Modalité de la mission",
+            decisions."Type de décision", 
+            decisions."Complément",
+            decisions."Thème Décision",
+            decisions."Sous-thème Décision",
+            COALESCE(decisions.SANCTION, 'sans_contrainte');
+        """
     cursor.execute(cross_miss_sui)
     conn.commit()
     print("cross_miss_sui a été ajouté") 
@@ -547,7 +538,7 @@ def inittable(conn):
         group_hsa_sa,
         filtre,
         "Statut de la mission",
-        "Date réelle ""Visite"",
+        "Date réelle Visite",
         GROUPE_2,
         groupe_siicea,
         "Type de planification",
@@ -576,7 +567,7 @@ def inittable(conn):
         group_hsa_sa,
         filtre,
         "Statut de la mission",
-        "Date réelle ""Visite"",
+        "Date réelle Visite",
         GROUPE_2,
         groupe_siicea,
         "Type de planification",
